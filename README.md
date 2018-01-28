@@ -9,5 +9,5 @@ docker-compose ps
 docker network ls
 docker-compose logs -f
 open http://localhost:18080
-docker-compose down --volume
+docker-compose down --volumes
 ```
