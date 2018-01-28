@@ -1,0 +1,57 @@
+version: '3'
+services:
+#
+# loadbalancer ('public')
+#
+  lb:
+# haproxy/alpine has no automagic service discovery enabled
+# dockercloud/haproxy has although not anymore in active development
+    image: dockercloud/haproxy
+    ports:
+     - 18080:80
+    links:
+     - app
+    networks:
+     - frontend-net
+     - internal-net
+    volumes:
+# enables discover of containers within same network
+     - /var/run/docker.sock:/var/run/docker.sock:ro
+#
+# business logic layer (internal)
+#
+  app:
+    build: .
+# note although port mapping declared it is not open
+# to 0.0.0.0:auto-mapped-port -> 5000 because of internal-net 
+    ports: 
+     - 5000
+    links:
+     - "redis:redis-storage"
+    volumes:
+# note current directory mapping to code using read-only filesystem config 'ro'
+     - ./app:/code:ro
+    networks:
+     - internal-net
+#
+# persistence layer (internal)
+#
+  redis:
+    image: redis:alpine
+    networks:
+     - internal-net
+
+networks:
+  frontend-net:
+    driver: bridge
+  internal-net:
+    driver: bridge
+    # not yet in version 3
+    # enable_ipv6: true
+    driver_opts:
+      # by default this is in bridged "0.0.0.0"
+      com.docker.network.bridge.host_binding_ipv4: "172.16.238.0"
+    ipam:
+      config:
+        - subnet: 172.16.238.0/24
+        - subnet: "2001:3984:3989::/64"
